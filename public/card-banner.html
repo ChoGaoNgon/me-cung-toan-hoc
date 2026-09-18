@@ -609,7 +609,8 @@
 
       c.restore();
 
-      // Label under portal
+      // Label under portal — chữ, nên tắt ở chế độ thẻ (?the=1): portal cấm chữ trong ảnh thẻ
+      if (!renderText) return;
       c.save();
       c.fillStyle = '#ffffff';
       c.font = 'bold 11px Fredoka, sans-serif';

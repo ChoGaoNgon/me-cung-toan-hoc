@@ -3,7 +3,6 @@ import { useGame } from '../context/GameContext';
 import { AvatarDisplay } from './AvatarDisplay';
 import {
   Coins,
-  Sparkles,
   Flame,
   Volume2,
   VolumeX,
@@ -22,9 +21,7 @@ import {
   Calculator,
   UserCheck,
   GraduationCap,
-  ArrowLeft,
-  Gamepad2,
-  ExternalLink
+  Gamepad2
 } from 'lucide-react';
 import { soundManager } from '../utils/audio';
 
@@ -82,37 +79,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenDailyModal, onOpenCustomMo
   return (
     <>
       <header className="sticky top-0 z-40 bg-gradient-to-r from-amber-500 via-yellow-400 to-orange-500 text-slate-900 shadow-lg border-b-3 border-amber-700 px-2 sm:px-4 py-1.5 sm:py-2 select-none">
-        {/* CenStu Top Bar: Back to Game Store + Branding */}
-        <div className="max-w-7xl mx-auto mb-1.5 pb-1 border-b border-amber-600/30 flex items-center justify-between gap-2 text-xs">
-          <a
-            id="btn-back-to-censtu-store"
-            href="https://game.censtu.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 bg-amber-950/80 hover:bg-amber-950 text-amber-100 hover:text-white px-2.5 py-1 rounded-lg font-fredoka font-bold text-[11px] sm:text-xs transition-all border border-amber-400/40 hover:scale-105 active:scale-95 shadow-xs group"
-            title="Quay lại kho game học tập tại game.censtu.com"
-          >
-            <ArrowLeft className="w-3.5 h-3.5 text-amber-300 group-hover:-translate-x-0.5 transition-transform" />
-            <Gamepad2 className="w-3.5 h-3.5 text-yellow-300" />
-            <span>Kho Game CenStu</span>
-            <ExternalLink className="w-3 h-3 text-amber-300/80 opacity-70 group-hover:opacity-100" />
-          </a>
-
-          <div className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-amber-950/90">
-            <span className="hidden xs:inline">Game được phát triển bởi</span>
-            <a
-              href="https://censtu.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-black text-purple-950 hover:text-purple-800 bg-white/70 hover:bg-white px-2 py-0.5 rounded-md border border-amber-400/60 shadow-2xs inline-flex items-center gap-1 transition-colors"
-              title="Truy cập CenStu.com"
-            >
-              <span>CenStu.com</span>
-              <Sparkles className="w-3 h-3 text-amber-600" />
-            </a>
-          </div>
-        </div>
-
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-1.5 sm:gap-3 flex-nowrap">
           
           {/* Left: Player Avatar, Level & Daily Streak */}
@@ -162,9 +128,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenDailyModal, onOpenCustomMo
 
           {/* Center: Star Vault, Coins, Gems & Daily Gift Button */}
           <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-            {/* Golden Star Pouch */}
+            {/* Golden Star Pouch — ẩn ở khổ < 360px: hàng này tràn ngang 36px ở 320px */}
             <div
-              className="flex items-center gap-1 bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-500 text-amber-950 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-xl font-fredoka font-black text-xs sm:text-sm border-2 border-yellow-200 shadow-xs"
+              className="max-[359px]:hidden flex items-center gap-1 bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-500 text-amber-950 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-xl font-fredoka font-black text-xs sm:text-sm border-2 border-yellow-200 shadow-xs"
               title={`Tổng số sao: ${totalStars} ⭐`}
             >
               <span className="text-sm sm:text-base filter drop-shadow-xs animate-wiggle">⭐</span>
@@ -450,8 +416,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenDailyModal, onOpenCustomMo
                 <span>Phát triển bởi</span>
                 <a
                   href="https://censtu.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  target="_top"
                   className="text-amber-900 hover:text-amber-700 underline font-black"
                 >
                   CenStu.com
@@ -461,8 +426,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenDailyModal, onOpenCustomMo
               <div className="flex items-center gap-2">
                 <a
                   href="https://game.censtu.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  target="_top"
                   className="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-950 rounded-xl font-bold text-xs border border-amber-300 transition-colors inline-flex items-center gap-1"
                 >
                   <Gamepad2 className="w-3.5 h-3.5 text-amber-700" />

@@ -11,6 +11,7 @@ import { FractionDisplay } from './FractionDisplay';
 import { AvatarDisplay } from './AvatarDisplay';
 import { soundManager } from '../utils/audio';
 import confetti from 'canvas-confetti';
+import { baoBatDauVan, baoKetThucVan, dangNhungTrongPortal, NuocDi } from '../censtu/sdk';
 import {
   ArrowUp,
   ArrowDown,
@@ -64,6 +65,10 @@ export const MathTileMazeView: React.FC<MathTileMazeViewProps> = ({
 
   const currentGrade = propGrade || profile.grade;
 
+  // Trong khung portal (cao 100dvh − 44px) cả vòng chơi phải vừa khung không cuộn: bớt đệm, lưới
+  // lấy cạnh theo chiều cao khung. Chạy độc lập thì giữ bố cục đầy đủ.
+  const [gon] = useState(dangNhungTrongPortal);
+
   // Maze State
   const [maze, setMaze] = useState<TileMazeData | null>(null);
   const [playerPos, setPlayerPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -85,10 +90,18 @@ export const MathTileMazeView: React.FC<MathTileMazeViewProps> = ({
 
   const timerRef = useRef<number | null>(null);
 
+  // Nhật ký nước đi của ván đang chơi (bằng chứng nộp portal). Ref, không state: ghi mỗi nước đi
+  // không được kéo theo một lượt render.
+  const nuocDiRef = useRef<NuocDi[]>([]);
+  const mocBatDauRef = useRef<number | null>(null);
+
   // Initialize or Regenerate Maze
   const initMaze = useCallback(() => {
     const newMaze = generateTileMaze(category, currentGrade, difficulty, customTarget);
     setMaze(newMaze);
+    // Mê cung mới = ván mới (kể cả nút "Chơi lại"): xoá nhật ký, chờ nước đi đầu để báo bắt đầu.
+    nuocDiRef.current = [];
+    mocBatDauRef.current = null;
     setPlayerPos({ x: newMaze.startX, y: newMaze.startY });
     setVisitedCells(new Set([`${newMaze.startX},${newMaze.startY}`]));
     setInvalidCellShake(null);
@@ -135,6 +148,17 @@ export const MathTileMazeView: React.FC<MathTileMazeViewProps> = ({
       }
 
       const targetCell = maze.grid[targetY][targetX];
+
+      if (mocBatDauRef.current === null) {
+        mocBatDauRef.current = performance.now();
+        baoBatDauVan('me-cung-o-so');
+      }
+      nuocDiRef.current.push({
+        x: targetX,
+        y: targetY,
+        ok: Boolean(targetCell.isValid || targetCell.isGoal),
+        t: Math.round(performance.now() - mocBatDauRef.current)
+      });
 
       // Check if target is valid or goal
       if (targetCell.isValid || targetCell.isGoal) {
@@ -246,6 +270,20 @@ export const MathTileMazeView: React.FC<MathTileMazeViewProps> = ({
 
     setEarnedStars(stars);
 
+    if (maze) {
+      baoKetThucVan('me-cung-o-so', {
+        meCung: {
+          luat: maze.challenge.prompt,
+          rong: maze.width,
+          cao: maze.height,
+          batDau: [maze.startX, maze.startY],
+          dich: [maze.goalX, maze.goalY],
+          oHopLe: maze.grid.map(hang => hang.map(o => Boolean(o.isValid || o.isGoal)))
+        },
+        nuocDi: nuocDiRef.current
+      });
+    }
+
     const timeBonus = Math.max(0, 200 - timeElapsed * 3);
     const score = stars * 400 + coinsGathered * 10 + gemsGathered * 30 + timeBonus;
 
@@ -278,6 +316,8 @@ export const MathTileMazeView: React.FC<MathTileMazeViewProps> = ({
 
   if (!maze) return null;
 
+  const maxBeRongLuoi = maze.width <= 4 ? '460px' : maze.width === 5 ? '540px' : '620px';
+
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
@@ -285,9 +325,13 @@ export const MathTileMazeView: React.FC<MathTileMazeViewProps> = ({
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-2 sm:p-4 space-y-4 select-none">
+    <div className={`max-w-5xl mx-auto select-none ${gon ? 'p-2 space-y-2' : 'p-2 sm:p-4 space-y-4'}`}>
       {/* Top Banner: Mission & Stats HUD */}
-      <div className="bg-white/95 rounded-3xl p-3 sm:p-5 shadow-2xl border-4 border-amber-400 space-y-3.5">
+      <div
+        className={`bg-white/95 rounded-3xl shadow-2xl border-4 border-amber-400 ${
+          gon ? 'p-2 sm:px-3 space-y-2' : 'p-3 sm:p-5 space-y-3.5'
+        }`}
+      >
         
         {/* Navigation & Controls */}
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -306,7 +350,11 @@ export const MathTileMazeView: React.FC<MathTileMazeViewProps> = ({
             </button>
 
             <div>
-              <h2 className="font-fredoka font-black text-lg sm:text-2xl text-slate-900 flex items-center gap-2">
+              <h2
+                className={`font-fredoka font-black text-lg text-slate-900 flex items-center gap-2 ${
+                  gon ? 'sm:text-xl' : 'sm:text-2xl'
+                }`}
+              >
                 <span>{levelTitle || maze.challenge.title}</span>
                 <span className="text-xs font-black bg-amber-100 text-amber-900 px-3 py-0.5 rounded-full border border-amber-300">
                   Lớp {currentGrade}
@@ -369,11 +417,17 @@ export const MathTileMazeView: React.FC<MathTileMazeViewProps> = ({
         </div>
 
         {/* Big Highlighted Mission Banner */}
-        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-2xl p-3.5 sm:p-4 text-white shadow-lg flex items-center justify-between gap-3 border-3 border-amber-600">
+        <div
+          className={`bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-2xl text-white shadow-lg flex items-center justify-between gap-3 border-3 border-amber-600 ${
+            gon ? 'px-3 py-2' : 'p-3.5 sm:p-4'
+          }`}
+        >
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl shadow-inner shrink-0 animate-bounce border border-white/30">
-              🎯
-            </div>
+            {!gon && (
+              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl shadow-inner shrink-0 animate-bounce border border-white/30">
+                🎯
+              </div>
+            )}
             <div>
               <span className="text-[11px] sm:text-xs font-fredoka font-black uppercase tracking-wider text-amber-100 block">
                 Quy Luật Thần Bí Cần Đi Theo
@@ -401,7 +455,7 @@ export const MathTileMazeView: React.FC<MathTileMazeViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
         
         {/* Left 3 cols: Tile Grid Canvas */}
-        <div className="lg:col-span-3 bg-white/95 rounded-3xl p-3 sm:p-5 shadow-2xl border-4 border-amber-400 flex flex-col items-center justify-center relative overflow-hidden">
+        <div className={`lg:col-span-3 bg-white/95 rounded-3xl shadow-2xl ${gon ? 'p-2 sm:p-3' : 'p-3 sm:p-5'} border-4 border-amber-400 flex flex-col items-center justify-center relative overflow-hidden`}>
           
           {/* Subtle Background Rune Circles */}
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-amber-200/20 rounded-full blur-xl pointer-events-none" />
@@ -417,10 +471,15 @@ export const MathTileMazeView: React.FC<MathTileMazeViewProps> = ({
           )}
 
           <div
-            className="grid gap-2.5 sm:gap-3.5 p-3 sm:p-5 bg-gradient-to-br from-amber-100/60 to-amber-200/40 rounded-3xl border-3 border-amber-300 shadow-inner w-full"
+            className={`grid bg-gradient-to-br from-amber-100/60 to-amber-200/40 rounded-3xl border-3 border-amber-300 shadow-inner w-full ${
+              gon ? 'gap-2 p-2 sm:p-3' : 'gap-2.5 sm:gap-3.5 p-3 sm:p-5'
+            }`}
             style={{
               gridTemplateColumns: `repeat(${maze.width}, minmax(0, 1fr))`,
-              maxWidth: maze.width <= 4 ? '460px' : maze.width === 5 ? '540px' : '620px'
+              // Lưới vuông ⇒ cao ≈ rộng. Khi nhúng, trừ phần header + HUD + đệm khỏi chiều cao khung.
+              maxWidth: gon
+                ? `min(${maxBeRongLuoi}, calc(100dvh - 360px))`
+                : maxBeRongLuoi
             }}
           >
             {maze.grid.map((row, y) =>
@@ -539,7 +598,12 @@ export const MathTileMazeView: React.FC<MathTileMazeViewProps> = ({
           </div>
 
           {/* D-Pad on-screen controller with 3D Arcade Buttons */}
-          <div className="w-full mt-4 pt-3 border-t-2 border-amber-300/80 flex flex-wrap items-center justify-between gap-3">
+          {/* Khi nhúng ở màn rộng: bỏ D-pad cho lưới đủ chỗ — phím mũi tên và bấm ô cạnh bên vẫn đi được */}
+          <div
+            className={`w-full mt-4 pt-3 border-t-2 border-amber-300/80 flex flex-wrap items-center justify-between gap-3 ${
+              gon ? 'lg:hidden' : ''
+            }`}
+          >
             <div className="text-xs text-amber-900 font-bold hidden sm:block">
               💡 Bấm phím mũi tên ⬆️ ⬇️ ⬅️ ➡️ hoặc nhấp vào ô cạnh bên để di chuyển
             </div>
@@ -581,13 +645,16 @@ export const MathTileMazeView: React.FC<MathTileMazeViewProps> = ({
         </div>
 
         {/* Right 1 col: Character RPG Card & Rule Helper */}
-        <div className="space-y-4">
+        <div className={gon ? 'space-y-2' : 'space-y-4'}>
           
           {/* Character Card */}
-          <div className="bg-white/95 rounded-3xl p-4 shadow-xl border-3 border-amber-300 text-center">
-            <div className="flex justify-center mb-2">
-              <AvatarDisplay customization={profile.customization} size="md" showTrail={true} />
-            </div>
+          <div className={`bg-white/95 rounded-3xl shadow-xl border-3 border-amber-300 text-center ${gon ? 'p-3' : 'p-4'}`}>
+            {/* Khi nhúng: nhân vật đã đứng trên lưới, bỏ ảnh lớn ở đây cho vừa khung */}
+            {!gon && (
+              <div className="flex justify-center mb-2">
+                <AvatarDisplay customization={profile.customization} size="md" showTrail={true} />
+              </div>
+            )}
             <h3 className="font-fredoka font-black text-lg text-slate-900">{profile.name}</h3>
             <p className="text-xs text-amber-800 font-bold mb-3">Hiệp Sĩ Mê Cung</p>
 

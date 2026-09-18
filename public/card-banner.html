@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Game Card & Banner Generator - Mê Cung Toán Học (800x600)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700;800;900&family=Nunito:wght@700;900&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #090a16;
+      color: #f8fafc;
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    /* Portal Mode ?the=1 (Clean standalone canvas for game portal card capture) */
+    body.portal-mode {
+      background: #000000 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      overflow: hidden !important;
+      justify-content: flex-start !important;
+      align-items: flex-start !important;
+    }
+
+    body.portal-mode .ui-container {
+      display: none !important;
+    }
+
+    body.portal-mode #canvas-wrapper {
+      box-shadow: none !important;
+      border: none !important;
+      border-radius: 0 !important;
+      margin: 0 !important;
+    }
+
+    /* Control Panel & UI Header */
+    .ui-container {
+      width: 100%;
+      max-width: 840px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .ui-header {
+      text-align: center;
+    }
+
+    .ui-header h1 {
+      font-family: 'Fredoka', cursive;
+      font-size: 26px;
+      font-weight: 900;
+      background: linear-gradient(135deg, #38bdf8, #818cf8, #f43f5e);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 0.5px;
+    }
+
+    .ui-header p {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+
+    .ui-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: rgba(30, 41, 59, 0.7);
+      padding: 10px 18px;
+      border-radius: 9999px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(8px);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 18px;
+      font-family: 'Fredoka', cursive;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 9999px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn-png {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    }
+    .btn-png:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
+    }
+
+    .btn-webm {
+      background: linear-gradient(135deg, #e11d48, #c026d3);
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(225, 29, 72, 0.35);
+    }
+    .btn-webm:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(225, 29, 72, 0.5);
+    }
+    .btn-webm.recording {
+      animation: pulse 1s infinite alternate;
+      background: #dc2626;
+    }
+
+    .btn-toggle {
+      background: rgba(255, 255, 255, 0.1);
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .btn-toggle:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .badge-info {
+      font-size: 12px;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-weight: 700;
+    }
+
+    @keyframes pulse {
+      from { opacity: 0.8; transform: scale(1); }
+      to { opacity: 1; transform: scale(1.04); }
+    }
+
+    /* Canvas Frame */
+    #canvas-wrapper {
+      position: relative;
+      width: 800px;
+      height: 600px;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 40px rgba(99, 102, 241, 0.25);
+      border: 2px solid rgba(255, 255, 255, 0.12);
+      background: #070913;
+    }
+
+    canvas {
+      display: block;
+      width: 800px;
+      height: 600px;
+    }
+
+    /* Recording overlay alert */
+    #rec-status {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid #ef4444;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-family: 'Fredoka', cursive;
+      font-size: 12px;
+      color: #f87171;
+      font-weight: 700;
+      z-index: 10;
+    }
+
+    .rec-dot {
+      width: 10px;
+      height: 10px;
+      background: #ef4444;
+      border-radius: 50%;
+      animation: pulse 0.6s infinite alternate;
+    }
+
+    .portal-hint {
+      margin-top: 14px;
+      font-size: 12px;
+      color: #64748b;
+      text-align: center;
+    }
+    .portal-hint a {
+      color: #38bdf8;
+      text-decoration: none;
+    }
+    .portal-hint a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- UI Control Panel (Hidden when ?the=1) -->
+  <div class="ui-container">
+    <div class="ui-header">
+      <h1>MÊ CUNG TOÁN HỌC - GAME CARD BANNER 800×600</h1>
+      <p>Card banner động 2D Fantasy / Sci-Fi với hiệu ứng ánh sáng ma thuật và xuất video WebM 60 FPS</p>
+    </div>
+
+    <div class="ui-controls">
+      <span class="badge-info">800 × 600 px • 60 FPS</span>
+      
+      <button id="btn-download-png" class="btn btn-png">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+        Tải ảnh PNG (800×600)
+      </button>
+
+      <button id="btn-record-webm" class="btn btn-webm">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+        <span>Quay clip WebM (4s)</span>
+      </button>
+
+      <button id="btn-toggle-text" class="btn btn-toggle" title="Ẩn/Hiện chữ để xem trước chế độ portal card">
+        👁️ Bật/Tắt Chữ
+      </button>
+    </div>
+  </div>
+
+  <!-- Canvas Container -->
+  <div id="canvas-wrapper">
+    <div id="rec-status">
+      <div class="rec-dot"></div>
+      <span id="rec-status-text">Đang quay video WebM: 4.0s</span>
+    </div>
+    <canvas id="gameCardCanvas" width="800" height="600"></canvas>
+  </div>
+
+  <div class="ui-container portal-hint">
+    <p>Chế độ portal CenStu chụp card: <a href="?the=1">card-banner.html?the=1</a> (Tự động ẩn giao diện web & ẩn chữ trên card)</p>
+  </div>
+
+  <script>
+    // -------------------------------------------------------------
+    // 1. ENVIRONMENT & QUERY PARAMS (?the=1 detection)
+    // -------------------------------------------------------------
+    const urlParams = new URLSearchParams(window.location.search);
+    const isPortalMode = urlParams.get('the') === '1';
+
+    if (isPortalMode) {
+      document.body.classList.add('portal-mode');
+    }
+
+    // Toggle for text rendering (Default: shown on standard preview, hidden on portal mode)
+    let renderText = !isPortalMode;
+
+    const canvas = document.getElementById('gameCardCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // -------------------------------------------------------------
+    // 2. PROCEDURAL PARTICLES & MATH ARTIFACTS
+    // -------------------------------------------------------------
+    const MATH_SYMBOLS = ['+', '−', '×', '÷', 'x = ?', '∑', '√', '100', '9', '42', 'π', '★', '∞'];
+    const particles = [];
+    const NUM_PARTICLES = 45;
+
+    for (let i = 0; i < NUM_PARTICLES; i++) {
+      particles.push({
+        x: Math.random() * 800,
+        y: Math.random() * 600,
+        vx: (Math.random() - 0.5) * 0.6,
+        vy: -0.3 - Math.random() * 0.7,
+        size: 8 + Math.random() * 16,
+        alpha: 0.2 + Math.random() * 0.6,
+        symbol: MATH_SYMBOLS[Math.floor(Math.random() * MATH_SYMBOLS.length)],
+        color: ['#38bdf8', '#818cf8', '#f43f5e', '#fbbf24', '#34d399', '#c084fc'][Math.floor(Math.random() * 6)],
+        rotation: Math.random() * Math.PI * 2,
+        rotSpeed: (Math.random() - 0.5) * 0.02
+      });
+    }
+
+    // Luminous Cyber Maze Nodes / Corridors
+    const mazeRunners = [
+      { t: 0, speed: 0.005, color: '#38bdf8', pathIndex: 0 },
+      { t: 0.35, speed: 0.006, color: '#fbbf24', pathIndex: 0 },
+      { t: 0.7, speed: 0.004, color: '#f43f5e', pathIndex: 0 },
+      { t: 0.1, speed: 0.007, color: '#34d399', pathIndex: 1 },
+      { t: 0.6, speed: 0.005, color: '#c084fc', pathIndex: 1 },
+      { t: 0.2, speed: 0.006, color: '#f59e0b', pathIndex: 2 },
+      { t: 0.8, speed: 0.005, color: '#38bdf8', pathIndex: 2 }
+    ];
+
+    const mazePaths = [
+      // Main central looping labyrinth
+      [
+        { x: 100, y: 380 }, { x: 220, y: 380 }, { x: 220, y: 260 },
+        { x: 380, y: 260 }, { x: 380, y: 380 }, { x: 520, y: 380 },
+        { x: 520, y: 240 }, { x: 680, y: 240 }, { x: 680, y: 360 },
+        { x: 580, y: 460 }, { x: 320, y: 460 }, { x: 180, y: 460 }, { x: 100, y: 380 }
+      ],
+      // Upper cyber bridge
+      [
+        { x: 120, y: 160 }, { x: 280, y: 160 }, { x: 340, y: 120 },
+        { x: 460, y: 120 }, { x: 520, y: 160 }, { x: 680, y: 160 },
+        { x: 680, y: 200 }, { x: 560, y: 200 }, { x: 480, y: 160 }, { x: 120, y: 160 }
+      ],
+      // Bottom puzzle loop
+      [
+        { x: 140, y: 520 }, { x: 260, y: 520 }, { x: 320, y: 480 },
+        { x: 480, y: 480 }, { x: 540, y: 520 }, { x: 660, y: 520 },
+        { x: 660, y: 550 }, { x: 400, y: 550 }, { x: 140, y: 550 }, { x: 140, y: 520 }
+      ]
+    ];
+
+    function getPointOnPath(path, t) {
+      const n = path.length - 1;
+      const progress = (t % 1) * n;
+      const index = Math.floor(progress);
+      const frac = progress - index;
+      const p1 = path[index];
+      const p2 = path[(index + 1) % path.length];
+      return {
+        x: p1.x + (p2.x - p1.x) * frac,
+        y: p1.y + (p2.y - p1.y) * frac
+      };
+    }
+
+    // -------------------------------------------------------------
+    // 3. MAIN RENDER ANIMATION LOOP
+    // -------------------------------------------------------------
+    let animationFrameId = null;
+    let startTime = performance.now();
+
+    function renderFrame(now) {
+      const time = (now - startTime) / 1000;
+
+      // Clear Canvas
+      ctx.clearRect(0, 0, 800, 600);
+
+      // --- LAYER 1: Dynamic Sci-Fi Fantasy Background ---
+      const bgGrad = ctx.createRadialGradient(400, 300, 40, 400, 300, 500);
+      bgGrad.addColorStop(0, '#1a103c');
+      bgGrad.addColorStop(0.45, '#0d0f28');
+      bgGrad.addColorStop(1, '#04050d');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, 800, 600);
+
+      // Radial glowing ambient orbs in background
+      drawGlowOrb(ctx, 160 + Math.sin(time * 0.8) * 30, 200 + Math.cos(time * 0.9) * 20, 180, 'rgba(56, 189, 248, 0.18)');
+      drawGlowOrb(ctx, 640 + Math.cos(time * 0.7) * 30, 380 + Math.sin(time * 0.6) * 25, 220, 'rgba(244, 63, 94, 0.16)');
+      drawGlowOrb(ctx, 400, 300 + Math.sin(time) * 15, 260, 'rgba(129, 140, 248, 0.15)');
+      drawGlowOrb(ctx, 400, 520, 160, 'rgba(251, 191, 36, 0.12)');
+
+      // Isometric / Hexagonal Cyber Grid lines
+      drawCyberGrid(ctx, time);
+
+      // --- LAYER 2: Glowing Maze Pathways & Walls ---
+      drawMazeGeometry(ctx, time);
+
+      // --- LAYER 3: Animated Pulse Runners along Maze ---
+      drawMazeRunners(ctx, time);
+
+      // --- LAYER 4: Floating Math Particles & Glyphs ---
+      drawParticles(ctx, time);
+
+      // --- LAYER 5: Interactive Game Entities (Portals, Start 🚩, Finish 🏆, Math Avatar) ---
+      drawGamePortalsAndEntities(ctx, time);
+
+      // --- LAYER 6: Title & Badge Typography (Rendered ONLY if renderText is TRUE) ---
+      if (renderText) {
+        drawGameTitles(ctx, time);
+      }
+
+      // Border Vignette & High-Tech Card Corner Accents
+      drawCardFrameAccents(ctx);
+
+      animationFrameId = requestAnimationFrame(renderFrame);
+    }
+
+    // -------------------------------------------------------------
+    // RENDER HELPERS
+    // -------------------------------------------------------------
+    function drawGlowOrb(c, x, y, r, color) {
+      const g = c.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, color);
+      g.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      c.fillStyle = g;
+      c.beginPath();
+      c.arc(x, y, r, 0, Math.PI * 2);
+      c.fill();
+    }
+
+    function drawCyberGrid(c, time) {
+      c.save();
+      c.strokeStyle = 'rgba(99, 102, 241, 0.08)';
+      c.lineWidth = 1;
+
+      const gridSize = 40;
+      const offsetX = (time * 8) % gridSize;
+      const offsetY = (time * 6) % gridSize;
+
+      for (let x = -gridSize; x <= 800 + gridSize; x += gridSize) {
+        c.beginPath();
+        c.moveTo(x + offsetX, 0);
+        c.lineTo(x + offsetX, 600);
+        c.stroke();
+      }
+
+      for (let y = -gridSize; y <= 600 + gridSize; y += gridSize) {
+        c.beginPath();
+        c.moveTo(0, y + offsetY);
+        c.lineTo(800, y + offsetY);
+        c.stroke();
+      }
+      c.restore();
+    }
+
+    function drawMazeGeometry(c, time) {
+      c.save();
+      
+      // Draw background corridor tracks
+      mazePaths.forEach((path, idx) => {
+        c.beginPath();
+        c.moveTo(path[0].x, path[0].y);
+        for (let i = 1; i < path.length; i++) {
+          c.lineTo(path[i].x, path[i].y);
+        }
+        c.closePath();
+
+        // Deep Neon glow underlay
+        c.strokeStyle = idx === 0 ? 'rgba(56, 189, 248, 0.25)' : idx === 1 ? 'rgba(168, 85, 247, 0.2)' : 'rgba(251, 191, 36, 0.2)';
+        c.lineWidth = 18;
+        c.lineCap = 'round';
+        c.lineJoin = 'round';
+        c.shadowColor = idx === 0 ? '#38bdf8' : idx === 1 ? '#a855f7' : '#fbbf24';
+        c.shadowBlur = 15;
+        c.stroke();
+
+        // Inner crisp neon track line
+        c.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+        c.lineWidth = 2.5;
+        c.setLineDash([8, 8]);
+        c.lineDashOffset = -time * 25;
+        c.shadowBlur = 0;
+        c.stroke();
+        c.setLineDash([]);
+      });
+
+      // Draw Gate Checkpoints along the main maze
+      const gatePositions = [
+        { x: 220, y: 320, label: 'Ải 1', q: '12 + 8' },
+        { x: 380, y: 320, label: 'Ải 2', q: '7 × 6' },
+        { x: 520, y: 310, label: 'Ải 3', q: '54 ÷ 9' },
+        { x: 680, y: 300, label: 'Ải 4', q: 'x = ?' },
+        { x: 450, y: 460, label: 'Ải 5', q: '95 − 37' }
+      ];
+
+      gatePositions.forEach((gate, gIdx) => {
+        // Outer glowing hex/circle ring
+        c.save();
+        const pulse = Math.sin(time * 3 + gIdx) * 2;
+        c.fillStyle = '#0f172a';
+        c.strokeStyle = '#38bdf8';
+        c.lineWidth = 2;
+        c.shadowColor = '#38bdf8';
+        c.shadowBlur = 10;
+
+        c.beginPath();
+        c.arc(gate.x, gate.y, 14 + pulse, 0, Math.PI * 2);
+        c.fill();
+        c.stroke();
+
+        // Gate mini label
+        c.fillStyle = '#ffffff';
+        c.font = 'bold 9px Nunito, sans-serif';
+        c.textAlign = 'center';
+        c.textBaseline = 'middle';
+        c.fillText(gate.q, gate.x, gate.y);
+        c.restore();
+      });
+
+      c.restore();
+    }
+
+    function drawMazeRunners(c, time) {
+      c.save();
+      mazeRunners.forEach(runner => {
+        runner.t += runner.speed;
+        const path = mazePaths[runner.pathIndex];
+        const pt = getPointOnPath(path, runner.t);
+
+        // Runner light core
+        c.shadowColor = runner.color;
+        c.shadowBlur = 16;
+        c.fillStyle = '#ffffff';
+        c.beginPath();
+        c.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
+        c.fill();
+
+        // Glowing outer halo
+        c.fillStyle = runner.color;
+        c.beginPath();
+        c.arc(pt.x, pt.y, 9, 0, Math.PI * 2);
+        c.fill();
+      });
+      c.restore();
+    }
+
+    function drawParticles(c, time) {
+      c.save();
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rotation += p.rotSpeed;
+
+        if (p.y < -30) {
+          p.y = 630;
+          p.x = Math.random() * 800;
+        }
+        if (p.x < -30) p.x = 830;
+        if (p.x > 830) p.x = -30;
+
+        c.save();
+        c.translate(p.x, p.y);
+        c.rotate(p.rotation);
+        c.fillStyle = p.color;
+        c.globalAlpha = p.alpha * (0.6 + Math.sin(time * 2 + p.x) * 0.4);
+        c.shadowColor = p.color;
+        c.shadowBlur = 8;
+        c.font = `bold ${p.size}px Fredoka, sans-serif`;
+        c.textAlign = 'center';
+        c.textBaseline = 'middle';
+        c.fillText(p.symbol, 0, 0);
+        c.restore();
+      });
+      c.restore();
+    }
+
+    function drawGamePortalsAndEntities(c, time) {
+      c.save();
+
+      // 1. START PORTAL (🚩 at bottom left)
+      const startX = 100;
+      const startY = 380;
+      drawPortal(c, startX, startY, time, '#38bdf8', '#0284c7', '🚩 START');
+
+      // 2. FINISH PORTAL (🏆 at right)
+      const finishX = 680;
+      const finishY = 360;
+      drawPortal(c, finishX, finishY, -time * 1.2, '#f59e0b', '#d97706', '🏆 FINISH');
+
+      // 3. Math Hero Avatar in the maze (Knight / Explorer at Center)
+      const heroX = 380 + Math.sin(time * 1.5) * 40;
+      const heroY = 260 + Math.cos(time * 1.2) * 15;
+      drawHeroAvatar(c, heroX, heroY, time);
+
+      // 4. Golden Magic Math Crystals & Chest
+      drawTrophyChest(c, 700, 480, time);
+      drawMagicFloatingStar(c, 130, 220, time, '#fbbf24');
+      drawMagicFloatingStar(c, 670, 160, time * 1.3, '#38bdf8');
+      drawMagicFloatingStar(c, 280, 520, time * 0.9, '#f43f5e');
+
+      c.restore();
+    }
+
+    function drawPortal(c, x, y, time, color1, color2, label) {
+      c.save();
+      const r = 28 + Math.sin(time * 4) * 3;
+
+      // Outer rotating magical ring
+      c.translate(x, y);
+      c.rotate(time * 2);
+
+      c.shadowColor = color1;
+      c.shadowBlur = 20;
+      c.strokeStyle = color1;
+      c.lineWidth = 3;
+      c.setLineDash([12, 6]);
+      c.beginPath();
+      c.arc(0, 0, r, 0, Math.PI * 2);
+      c.stroke();
+      c.setLineDash([]);
+
+      // Inner swirling core
+      c.rotate(-time * 4);
+      const coreGrad = c.createRadialGradient(0, 0, 0, 0, 0, r);
+      coreGrad.addColorStop(0, '#ffffff');
+      coreGrad.addColorStop(0.5, color1);
+      coreGrad.addColorStop(1, 'rgba(0, 0, 0, 0.4)');
+      c.fillStyle = coreGrad;
+      c.beginPath();
+      c.arc(0, 0, r * 0.75, 0, Math.PI * 2);
+      c.fill();
+
+      c.restore();
+
+      // Label under portal
+      c.save();
+      c.fillStyle = '#ffffff';
+      c.font = 'bold 11px Fredoka, sans-serif';
+      c.textAlign = 'center';
+      c.shadowColor = color1;
+      c.shadowBlur = 8;
+      c.fillText(label, x, y + 42);
+      c.restore();
+    }
+
+    function drawHeroAvatar(c, x, y, time) {
+      c.save();
+      c.translate(x, y + Math.sin(time * 4) * 4);
+
+      // Soft Shadow
+      c.fillStyle = 'rgba(0, 0, 0, 0.4)';
+      c.beginPath();
+      c.ellipse(0, 24, 18, 6, 0, 0, Math.PI * 2);
+      c.fill();
+
+      // Glowing Magic Aura
+      c.shadowColor = '#818cf8';
+      c.shadowBlur = 18;
+      c.fillStyle = 'rgba(129, 140, 248, 0.3)';
+      c.beginPath();
+      c.arc(0, 0, 22, 0, Math.PI * 2);
+      c.fill();
+
+      // Explorer Body (Cute round robot/mage)
+      const bodyGrad = c.createLinearGradient(-16, -16, 16, 16);
+      bodyGrad.addColorStop(0, '#38bdf8');
+      bodyGrad.addColorStop(1, '#1d4ed8');
+      c.fillStyle = bodyGrad;
+      c.beginPath();
+      c.arc(0, 0, 16, 0, Math.PI * 2);
+      c.fill();
+      c.strokeStyle = '#ffffff';
+      c.lineWidth = 2;
+      c.stroke();
+
+      // Cute Eyes (Visor)
+      c.fillStyle = '#fef08a';
+      c.shadowColor = '#fef08a';
+      c.shadowBlur = 8;
+      c.beginPath();
+      c.roundRect(-8, -4, 16, 8, 4);
+      c.fill();
+
+      // Floating Crown / Antenna
+      c.fillStyle = '#fbbf24';
+      c.beginPath();
+      c.arc(0, -18, 4, 0, Math.PI * 2);
+      c.fill();
+
+      c.restore();
+    }
+
+    function drawTrophyChest(c, x, y, time) {
+      c.save();
+      c.translate(x, y + Math.sin(time * 2.5) * 5);
+      c.shadowColor = '#fbbf24';
+      c.shadowBlur = 20;
+
+      // Glow behind chest
+      const g = c.createRadialGradient(0, 0, 5, 0, 0, 35);
+      g.addColorStop(0, 'rgba(251, 191, 36, 0.5)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = g;
+      c.beginPath();
+      c.arc(0, 0, 35, 0, Math.PI * 2);
+      c.fill();
+
+      // Trophy Icon
+      c.font = '28px sans-serif';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillText('🏆', 0, 0);
+
+      c.restore();
+    }
+
+    function drawMagicFloatingStar(c, x, y, time, color) {
+      c.save();
+      c.translate(x, y + Math.sin(time * 3) * 6);
+      c.rotate(time);
+      c.shadowColor = color;
+      c.shadowBlur = 15;
+      c.fillStyle = color;
+      c.font = '20px sans-serif';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillText('✦', 0, 0);
+      c.restore();
+    }
+
+    // -------------------------------------------------------------
+    // 4. LOGO & GAME CARD TYPOGRAPHY
+    // -------------------------------------------------------------
+    function drawGameTitles(c, time) {
+      c.save();
+
+      // Top Header Badge
+      const topBadgeY = 55;
+      c.shadowColor = 'rgba(0,0,0,0.6)';
+      c.shadowBlur = 10;
+      c.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      c.strokeStyle = '#38bdf8';
+      c.lineWidth = 1.5;
+      c.beginPath();
+      c.roundRect(400 - 140, topBadgeY - 16, 280, 32, 16);
+      c.fill();
+      c.stroke();
+
+      c.fillStyle = '#38bdf8';
+      c.font = '900 13px Fredoka, sans-serif';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.shadowColor = '#38bdf8';
+      c.shadowBlur = 6;
+      c.fillText('⚡ GAME TOÁN TIỂU HỌC LỚP 1 - 5 ⚡', 400, topBadgeY);
+
+      // MAIN BIG TITLE: "MÊ CUNG TOÁN HỌC"
+      const titleY = 118 + Math.sin(time * 2) * 2;
+      c.font = '900 52px Fredoka, sans-serif';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+
+      // 3D Drop Shadow / Extrusion
+      c.fillStyle = '#0f172a';
+      c.shadowColor = 'rgba(0, 0, 0, 0.9)';
+      c.shadowBlur = 25;
+      for (let offset = 6; offset >= 1; offset--) {
+        c.fillText('MÊ CUNG TOÁN HỌC', 400, titleY + offset);
+      }
+
+      // Outer Vibrant Neon Stroke
+      c.strokeStyle = '#38bdf8';
+      c.lineWidth = 8;
+      c.lineJoin = 'round';
+      c.shadowColor = '#38bdf8';
+      c.shadowBlur = 20;
+      c.strokeText('MÊ CUNG TOÁN HỌC', 400, titleY);
+
+      // Inner Gradient Fill
+      const textGrad = c.createLinearGradient(400 - 250, titleY - 25, 400 + 250, titleY + 25);
+      textGrad.addColorStop(0, '#ffffff');
+      textGrad.addColorStop(0.3, '#fef08a');
+      textGrad.addColorStop(0.65, '#f59e0b');
+      textGrad.addColorStop(1, '#ec4899');
+      c.fillStyle = textGrad;
+      c.shadowBlur = 0;
+      c.fillText('MÊ CUNG TOÁN HỌC', 400, titleY);
+
+      // Subtitle Slogan Ribbon
+      const subY = 158;
+      c.font = '800 15px Nunito, sans-serif';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillStyle = '#e2e8f0';
+      c.shadowColor = '#818cf8';
+      c.shadowBlur = 10;
+      c.fillText('VƯỢT ẢI MÊ CUNG • TƯ DUY SỐ HỌC • CHINH PHỤC THỬ THÁCH', 400, subY);
+
+      // Bottom Feature Badges
+      drawBottomBadge(c, 240, 560, '✨ 9 CỬA ẢI THÁM HIỂM', '#38bdf8');
+      drawBottomBadge(c, 400, 560, '👑 ĐUA TOP BẢNG VÀNG', '#fbbf24');
+      drawBottomBadge(c, 560, 560, '🖨️ IN PHIẾU BÀI TẬP A4', '#34d399');
+
+      c.restore();
+    }
+
+    function drawBottomBadge(c, x, y, text, color) {
+      c.save();
+      c.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      c.strokeStyle = color;
+      c.lineWidth = 1.5;
+      c.shadowColor = color;
+      c.shadowBlur = 8;
+      c.beginPath();
+      c.roundRect(x - 75, y - 14, 150, 28, 14);
+      c.fill();
+      c.stroke();
+
+      c.fillStyle = '#ffffff';
+      c.font = '800 11px Fredoka, sans-serif';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.shadowBlur = 0;
+      c.fillText(text, x, y);
+      c.restore();
+    }
+
+    function drawCardFrameAccents(c) {
+      c.save();
+      // Tech corners
+      const cornerSize = 24;
+      c.strokeStyle = '#38bdf8';
+      c.lineWidth = 3;
+      c.shadowColor = '#38bdf8';
+      c.shadowBlur = 12;
+
+      // Top Left
+      c.beginPath();
+      c.moveTo(12, 12 + cornerSize);
+      c.lineTo(12, 12);
+      c.lineTo(12 + cornerSize, 12);
+      c.stroke();
+
+      // Top Right
+      c.beginPath();
+      c.moveTo(800 - 12 - cornerSize, 12);
+      c.lineTo(800 - 12, 12);
+      c.lineTo(800 - 12, 12 + cornerSize);
+      c.stroke();
+
+      // Bottom Left
+      c.beginPath();
+      c.moveTo(12, 600 - 12 - cornerSize);
+      c.lineTo(12, 600 - 12);
+      c.lineTo(12 + cornerSize, 600 - 12);
+      c.stroke();
+
+      // Bottom Right
+      c.beginPath();
+      c.moveTo(800 - 12 - cornerSize, 600 - 12);
+      c.lineTo(800 - 12, 600 - 12);
+      c.lineTo(800 - 12, 600 - 12 - cornerSize);
+      c.stroke();
+
+      c.restore();
+    }
+
+    // Start Animation Loop
+    renderFrame(performance.now());
+
+    // -------------------------------------------------------------
+    // 5. EXPORT ACTIONS (PNG & 60 FPS WEBM RECORDING)
+    // -------------------------------------------------------------
+
+    // 5.1 Download PNG 800x600
+    document.getElementById('btn-download-png')?.addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = `me-cung-toan-hoc-card-800x600-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png', 1.0);
+      link.click();
+    });
+
+    // 5.2 Toggle Text (For portal card testing)
+    document.getElementById('btn-toggle-text')?.addEventListener('click', () => {
+      renderText = !renderText;
+    });
+
+    // 5.3 Record 4-Second 60 FPS WebM Video
+    const btnRecord = document.getElementById('btn-record-webm');
+    const recStatus = document.getElementById('rec-status');
+    const recStatusText = document.getElementById('rec-status-text');
+
+    let isRecording = false;
+
+    btnRecord?.addEventListener('click', async () => {
+      if (isRecording) return;
+      isRecording = true;
+
+      btnRecord.classList.add('recording');
+      btnRecord.innerHTML = '⏳ Đang quay 4s...';
+      recStatus.style.display = 'flex';
+
+      try {
+        // Capture stream at 60 FPS
+        const stream = canvas.captureStream(60);
+        const mimeTypes = [
+          'video/webm;codecs=vp9',
+          'video/webm;codecs=vp8',
+          'video/webm'
+        ];
+        let selectedMime = mimeTypes.find(type => MediaRecorder.isTypeSupported(type)) || 'video/webm';
+
+        const recorder = new MediaRecorder(stream, {
+          mimeType: selectedMime,
+          videoBitsPerSecond: 8000000 // 8 Mbps for high fidelity
+        });
+
+        const chunks = [];
+        recorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) {
+            chunks.push(e.data);
+          }
+        };
+
+        recorder.onstop = () => {
+          const blob = new Blob(chunks, { type: selectedMime });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.download = `me-cung-toan-hoc-card-800x600-${Date.now()}.webm`;
+          a.href = url;
+          a.click();
+          URL.revokeObjectURL(url);
+
+          // Reset UI
+          isRecording = false;
+          btnRecord.classList.remove('recording');
+          btnRecord.innerHTML = `
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+            <span>Quay clip WebM (4s)</span>
+          `;
+          recStatus.style.display = 'none';
+        };
+
+        recorder.start();
+
+        const durationMs = 4000;
+        const startTime = Date.now();
+
+        const timerInterval = setInterval(() => {
+          const elapsed = Date.now() - startTime;
+          const remaining = Math.max(0, (durationMs - elapsed) / 1000).toFixed(1);
+          recStatusText.innerText = `Đang quay clip 60 FPS: ${remaining}s`;
+          if (elapsed >= durationMs) {
+            clearInterval(timerInterval);
+            recorder.stop();
+          }
+        }, 100);
+
+      } catch (err) {
+        console.error('Lỗi khi quay video:', err);
+        alert('Trình duyệt không hỗ trợ MediaRecorder captureStream. Vui lòng sử dụng tính năng tải ảnh PNG.');
+        isRecording = false;
+        btnRecord.classList.remove('recording');
+        btnRecord.innerHTML = 'Quay clip WebM (4s)';
+        recStatus.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -328,6 +328,7 @@ export const PrintableWorksheetModal: React.FC<PrintableWorksheetModalProps> = (
                 <div className="flex-1 pr-3">
                   <p className="font-bold">Nhận xét của giáo viên:</p>
                   <p className="text-slate-400 mt-0.5">.................................................................................................................................</p>
+                  <p className="text-[8px] text-slate-400 mt-1 font-sans">Phiếu học tập toán tiểu học • Bản quyền phát triển bởi CenStu.com (game.censtu.com)</p>
                 </div>
                 <div className="text-center min-w-[130px]">
                   <p className="font-bold">Chữ ký phụ huynh</p>

@@ -12,7 +12,7 @@ import { DailyRewardsModal } from './components/DailyRewardsModal';
 import { CustomPracticeModal } from './components/CustomPracticeModal';
 import { CAMPAIGN_WORLDS } from './data/campaignData';
 import { QuestionCategory } from './types';
-import { WifiOff, Heart } from 'lucide-react';
+import { WifiOff, Heart, Gamepad2, ExternalLink } from 'lucide-react';
 
 const MainContent: React.FC = () => {
   const {
@@ -124,14 +124,37 @@ const MainContent: React.FC = () => {
 
       {/* Footer */}
       <footer className="bg-amber-100 border-t-2 border-amber-300/80 py-4 px-4 text-center text-xs text-amber-900 font-semibold">
-        <div className="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-2">
+        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-1.5 text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-full text-[11px] font-bold">
             <WifiOff className="w-3.5 h-3.5 text-emerald-600" />
             <span>Chế độ chơi ngoại tuyến đã sẵn sàng</span>
           </div>
 
-          <div className="flex items-center gap-1">
-            <span>Thiết kế dành cho học sinh tiểu học rèn luyện tính nhẩm nhanh</span>
+          <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
+            <span>© Game được phát triển bởi</span>
+            <a
+              href="https://censtu.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-black text-amber-950 hover:text-amber-800 underline decoration-amber-400 hover:decoration-amber-600 inline-flex items-center gap-1"
+            >
+              CenStu.com
+            </a>
+            <span className="text-amber-400">•</span>
+            <a
+              href="https://game.censtu.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-orange-800 hover:text-orange-950 inline-flex items-center gap-1 bg-white/80 hover:bg-white px-2 py-0.5 rounded-md border border-amber-300 transition-colors shadow-2xs"
+            >
+              <Gamepad2 className="w-3.5 h-3.5 text-orange-600" />
+              <span>Kho game CenStu</span>
+              <ExternalLink className="w-3 h-3 text-orange-500" />
+            </a>
+          </div>
+
+          <div className="flex items-center gap-1 text-[11px] text-amber-800">
+            <span>Học toán tiểu học</span>
             <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
           </div>
         </div>

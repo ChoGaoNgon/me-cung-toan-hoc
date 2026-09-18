@@ -5,6 +5,7 @@ import { soundManager } from '../utils/audio';
 import { AvatarDisplay } from './AvatarDisplay';
 import { PrintableWorksheetModal } from './PrintableWorksheetModal';
 import confetti from 'canvas-confetti';
+import { baoBatDauVan, baoKetThucVan, CauTraLoi, dangNhungTrongPortal } from '../censtu/sdk';
 import {
   Printer,
   RotateCcw,
@@ -466,6 +467,22 @@ export const WorksheetMazeView: React.FC = () => {
 
   const moveIntervalRef = useRef<number | null>(null);
   const autoPlayTimerRef = useRef<number | null>(null);
+
+  // Trong khung portal (cao 100dvh − 44px): ở màn rộng, bản đồ dọc sang cột trái với cạnh lấy theo
+  // chiều cao khung, thanh công cụ + câu hỏi sang cột phải — cả vòng chơi vừa khung không cuộn.
+  const [gon] = useState(dangNhungTrongPortal);
+  const cotPhai = gon ? 'lg:col-start-2' : '';
+
+  // Nhật ký trả lời của phiếu đang chơi (bằng chứng nộp portal). Ref, không state.
+  const traLoiRef = useRef<CauTraLoi[]>([]);
+  const mocBatDauRef = useRef<number | null>(null);
+  // Phiếu có bật Bot tự giải lúc nào đó thì không phải thành tích của người chơi -> không nộp.
+  const daDungBotRef = useRef<boolean>(false);
+  const datLaiNhatKy = () => {
+    traLoiRef.current = [];
+    mocBatDauRef.current = null;
+    daDungBotRef.current = false;
+  };
 
   // Determine ms per step based on selected speed
   const getStepDuration = () => {
@@ -1106,6 +1123,7 @@ export const WorksheetMazeView: React.FC = () => {
       activeTeacherScript
     );
     setGates(initialGates);
+    datLaiNhatKy();
     setCorridorLegs(initialLegs);
     setActiveGateIndex(0);
     setCharacterPos(currentMap.startPoint);
@@ -1140,6 +1158,17 @@ export const WorksheetMazeView: React.FC = () => {
     const isCorrect = selectedAnswer === gate.correctAnswer;
     recordQuestionAnswered(isCorrect);
 
+    if (mocBatDauRef.current === null) {
+      mocBatDauRef.current = performance.now();
+      baoBatDauVan('phieu-me-cung');
+    }
+    traLoiRef.current.push({
+      c: gateId,
+      a: selectedAnswer,
+      ok: isCorrect,
+      t: Math.round(performance.now() - mocBatDauRef.current)
+    });
+
     if (isCorrect) {
       // 🌸 TUNG HOA VỖ TAY 👏
       soundManager.playCorrect();
@@ -1169,6 +1198,13 @@ export const WorksheetMazeView: React.FC = () => {
             soundManager.playVictory();
             soundManager.playApplause();
             addCoinsAndGems(200, 15);
+            if (!daDungBotRef.current) {
+              baoKetThucVan('phieu-me-cung', {
+                chuDe: activeTeacherScript ? `kich-ban:${activeTeacherScript.id}` : worksheetTopic,
+                cong: gates.map(g => ({ c: g.id, dapAn: g.correctAnswer })),
+                traLoi: traLoiRef.current
+              });
+            }
             setCharacterThought('Hoan hô! Về đích rồi! 🏆');
             try {
               confetti({
@@ -1229,6 +1265,7 @@ export const WorksheetMazeView: React.FC = () => {
       activeTeacherScript
     );
     setGates(newGates);
+    datLaiNhatKy();
     setCorridorLegs(newLegs);
     setActiveGateIndex(0);
     setCharacterPos(currentMap.startPoint);
@@ -1266,7 +1303,7 @@ export const WorksheetMazeView: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-2 sm:p-4 space-y-3 select-none">
+    <div className={`mx-auto select-none ${gon ? 'max-w-6xl p-2 space-y-2' : 'max-w-4xl p-2 sm:p-4 space-y-3'}`}>
       {/* 🎓 Active Teacher Script Banner */}
       {activeTeacherScript && (
         <div className="no-print bg-gradient-to-r from-purple-700 via-indigo-600 to-purple-800 text-white p-3.5 sm:p-4 rounded-3xl shadow-lg border-3 border-amber-300 flex flex-wrap items-center justify-between gap-3 animate-in fade-in duration-200">
@@ -1307,10 +1344,18 @@ export const WorksheetMazeView: React.FC = () => {
       )}
 
       {/* Main Worksheet Maze Frame (Elevated right to the top for immediate gameplay) */}
-      <div className="no-print bg-white rounded-3xl p-3 sm:p-5 shadow-2xl border-4 border-slate-900 relative overflow-hidden flex flex-col items-center">
+      <div
+        className={`no-print bg-white rounded-3xl shadow-2xl border-4 border-slate-900 relative overflow-hidden flex flex-col items-center ${
+          gon
+            ? 'p-2 sm:p-3 lg:grid lg:grid-cols-[var(--rong-ban-do)_minmax(0,1fr)] lg:grid-rows-[auto_auto_auto_1fr] lg:gap-x-4 lg:items-start'
+            : 'p-3 sm:p-5'
+        }`}
+        // Bản đồ 400:480 ⇒ rộng = cao × 5/6; cao = khung trừ header + đệm.
+        style={gon ? ({ '--rong-ban-do': 'calc((100dvh - 170px) * 5 / 6)' } as React.CSSProperties) : undefined}
+      >
         
         {/* In-Frame Top Action Ribbon */}
-        <div className="w-full flex flex-wrap items-center justify-between gap-2 pb-3 mb-2.5 border-b-3 border-slate-200">
+        <div className={`w-full flex flex-wrap items-center justify-between gap-2 pb-3 mb-2.5 border-b-3 border-slate-200 ${cotPhai}`}>
           {/* Left: Map Selector Trigger Button + Speed Pill + Answer Mode Selector */}
           <div className="flex items-center flex-wrap gap-2">
             <button
@@ -1397,6 +1442,7 @@ export const WorksheetMazeView: React.FC = () => {
                 soundManager.playClick();
                 setIsAutoPlaying(prev => !prev);
                 if (!isAutoPlaying) {
+                  daDungBotRef.current = true;
                   setCharacterThought('Tớ sẽ tự động giải và vượt mê cung!');
                 }
               }}
@@ -1446,7 +1492,7 @@ export const WorksheetMazeView: React.FC = () => {
         </div>
 
         {/* Math Topic Selector Bar inside Game Frame */}
-        <div className="w-full flex items-center justify-between flex-wrap gap-2 pb-2.5 mb-2.5 border-b border-slate-100">
+        <div className={`w-full flex items-center justify-between flex-wrap gap-2 pb-2.5 mb-2.5 border-b border-slate-100 ${cotPhai}`}>
           <div className="flex flex-wrap items-center gap-1.5">
             {[
               { id: 'word_problem', label: '📜 Toán Lời Văn' },
@@ -1484,7 +1530,12 @@ export const WorksheetMazeView: React.FC = () => {
         </div>
 
         {/* Maze Graphic Canvas with Pure White Background & No Intersecting Lines */}
-        <div className="w-full max-w-2xl relative aspect-[400/480] bg-white border-4 border-slate-900 rounded-2xl overflow-hidden shadow-inner select-none">
+        <div
+          className={`w-full max-w-2xl relative aspect-[400/480] bg-white border-4 border-slate-900 rounded-2xl overflow-hidden shadow-inner select-none ${
+            gon ? 'lg:col-start-1 lg:row-start-1 lg:row-span-4' : ''
+          }`}
+          style={gon ? { maxWidth: 'min(42rem, var(--rong-ban-do))' } : undefined}
+        >
           
           {/* Maze Wall Background SVG */}
           <svg className="absolute inset-0 w-full h-full bg-white" viewBox={currentMap.viewBox} fill="none">
@@ -1767,7 +1818,7 @@ export const WorksheetMazeView: React.FC = () => {
 
         {/* Current Question Focus Banner (Dedicated area below maze - never overlaps the canvas!) */}
         {activeGate && !isCompleted && (
-          <div className="w-full mt-3 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border-3 border-amber-400 rounded-2xl p-3 sm:p-4.5 flex flex-col gap-3.5 shadow-md">
+          <div className={`w-full mt-3 ${cotPhai} bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border-3 border-amber-400 rounded-2xl p-3 sm:p-4.5 flex flex-col gap-3.5 shadow-md`}>
             <div className="flex items-start gap-3 min-w-0">
               <div className="w-10 h-10 bg-amber-400 text-amber-950 rounded-2xl flex items-center justify-center text-lg font-black shadow-inner shrink-0 mt-0.5">
                 #{activeGateIndex + 1}
@@ -1835,7 +1886,7 @@ export const WorksheetMazeView: React.FC = () => {
 
         {/* Victory Celebration Box */}
         {isCompleted && (
-          <div className="w-full mt-3 bg-gradient-to-r from-emerald-100 to-teal-100 border-3 border-emerald-500 rounded-3xl p-5 text-center font-fredoka shadow-lg animate-in zoom-in">
+          <div className={`w-full mt-3 ${cotPhai} bg-gradient-to-r from-emerald-100 to-teal-100 border-3 border-emerald-500 rounded-3xl p-5 text-center font-fredoka shadow-lg animate-in zoom-in`}>
             <div className="text-4xl mb-2 animate-bounce">🏆 🌟 🎁</div>
             <h3 className="font-black text-xl sm:text-2xl text-emerald-950 mb-1">
               CHÚC MỪNG EM ĐÃ ĐƯA NHÂN VẬT VỀ ĐÍCH THÀNH CÔNG!

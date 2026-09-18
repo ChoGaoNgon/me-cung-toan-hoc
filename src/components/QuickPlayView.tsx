@@ -3,6 +3,7 @@ import { useGame } from '../context/GameContext';
 import { QuestionCategory, GradeLevel, MazeDifficulty } from '../types';
 import { MathTileMazeView } from './MathTileMazeView';
 import { soundManager } from '../utils/audio';
+import { dangNhungTrongPortal } from '../censtu/sdk';
 import {
   Play,
   Sparkles,
@@ -23,6 +24,9 @@ export const QuickPlayView: React.FC = () => {
   const [selectedDifficulty, setSelectedDifficulty] = useState<MazeDifficulty>('medium');
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [quickLevelIndex, setQuickLevelIndex] = useState<number>(1);
+  // Trong khung portal, màn chọn đề cao hơn khung: ghim nút bắt đầu ở đáy vùng cuộn để khỏi phải
+  // cuộn mới vào được ván.
+  const [gon] = useState(dangNhungTrongPortal);
 
   const categories: {
     id: QuestionCategory;
@@ -291,7 +295,7 @@ export const QuickPlayView: React.FC = () => {
           setQuickLevelIndex(1);
           setIsPlaying(true);
         }}
-        className="w-full py-4.5 game-btn-green font-fredoka font-black text-xl sm:text-2xl rounded-3xl shadow-2xl flex items-center justify-center gap-3 active:scale-98 transition-transform cursor-pointer"
+        className={`${gon ? 'sticky bottom-2 z-10' : ''} w-full py-4.5 game-btn-green font-fredoka font-black text-xl sm:text-2xl rounded-3xl shadow-2xl flex items-center justify-center gap-3 active:scale-98 transition-transform cursor-pointer`}
       >
         <Play className="w-7 h-7 fill-white" />
         <span>BẮT ĐẦU VÀO MÊ CUNG!</span>

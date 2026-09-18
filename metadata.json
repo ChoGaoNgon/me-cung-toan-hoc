@@ -1,6 +1,0 @@
-{
-  "name": "Mê Cung Toán Học - Math Maze",
-  "description": "Trò chơi mê cung tính nhẩm phiêu lưu cho học sinh tiểu học với các bài toán cộng trừ nhân chia, vượt ải mở khóa cánh cổng, trang trí nhân vật, phần thưởng mỗi ngày và bảng xếp hạng thi đua.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

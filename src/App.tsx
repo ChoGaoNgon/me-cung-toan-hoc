@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { GameProvider, useGame } from './context/GameContext';
 import { Navbar } from './components/Navbar';
 import { WorldMap } from './components/WorldMap';
@@ -12,7 +12,9 @@ import { DailyRewardsModal } from './components/DailyRewardsModal';
 import { CustomPracticeModal } from './components/CustomPracticeModal';
 import { CAMPAIGN_WORLDS } from './data/campaignData';
 import { QuestionCategory } from './types';
-import { WifiOff, Heart, Gamepad2, ExternalLink } from 'lucide-react';
+import { WifiOff, Heart } from 'lucide-react';
+import { baoSanSang, dangNhungTrongPortal } from './censtu/sdk';
+import { ThanhVeKhoTroChoi } from './censtu/ThanhVeKhoTroChoi';
 
 const MainContent: React.FC = () => {
   const {
@@ -27,6 +29,7 @@ const MainContent: React.FC = () => {
   } = useGame();
   const [showDailyModal, setShowDailyModal] = useState(false);
   const [showCustomModal, setShowCustomModal] = useState(false);
+  const [dangNhung] = useState(dangNhungTrongPortal);
 
   const isCustom = Boolean(customPracticeConfig && customPracticeConfig.isActive);
   const currentWorld = CAMPAIGN_WORLDS.find(w => w.id === activeWorldId) || CAMPAIGN_WORLDS[0];
@@ -58,7 +61,13 @@ const MainContent: React.FC = () => {
   const customDifficulty = (customPracticeConfig?.mazeSize || 13) > 13 ? 'hard' : (customPracticeConfig?.mazeSize || 13) > 9 ? 'medium' : 'easy';
 
   return (
-    <div className="min-h-screen bg-[#fdfaf3] text-slate-800 flex flex-col selection:bg-amber-300">
+    <div
+      className={`bg-[#fdfaf3] text-slate-800 flex flex-col selection:bg-amber-300 ${
+        dangNhung ? 'h-dvh overflow-hidden' : 'min-h-screen'
+      }`}
+    >
+      {!dangNhung && <ThanhVeKhoTroChoi />}
+
       {/* Top Navbar */}
       <Navbar
         onOpenDailyModal={() => setShowDailyModal(true)}
@@ -66,7 +75,9 @@ const MainContent: React.FC = () => {
       />
 
       {/* Main View Area */}
-      <main className="flex-1 w-full pb-12">
+      {/* `min-h-0` là điều kiện để `flex-1` co lại được: thiếu nó, flex item lấy chiều cao nội dung
+          làm sàn và cả trang tràn ra ngoài khung nhúng thay vì cuộn bên trong */}
+      <main className={`flex-1 w-full ${dangNhung ? 'min-h-0 overflow-y-auto' : 'pb-12'}`}>
         {currentMode === 'world_map' && <WorldMap />}
         {currentMode === 'quick_play' && <QuickPlayView />}
         {currentMode === 'maze_play' && (
@@ -122,48 +133,46 @@ const MainContent: React.FC = () => {
         />
       )}
 
-      {/* Footer */}
-      <footer className="bg-amber-100 border-t-2 border-amber-300/80 py-4 px-4 text-center text-xs text-amber-900 font-semibold">
-        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-1.5 text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-full text-[11px] font-bold">
-            <WifiOff className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Chế độ chơi ngoại tuyến đã sẵn sàng</span>
-          </div>
+      {/* Footer — chỉ khi chạy độc lập; trong portal đã có khung của portal */}
+      {!dangNhung && (
+        <footer className="bg-amber-100 border-t-2 border-amber-300/80 py-4 px-4 text-center text-xs text-amber-900 font-semibold">
+          <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-1.5 text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-full text-[11px] font-bold">
+              <WifiOff className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Chế độ chơi ngoại tuyến đã sẵn sàng</span>
+            </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
-            <span>© Game được phát triển bởi</span>
-            <a
-              href="https://censtu.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-black text-amber-950 hover:text-amber-800 underline decoration-amber-400 hover:decoration-amber-600 inline-flex items-center gap-1"
-            >
-              CenStu.com
-            </a>
-            <span className="text-amber-400">•</span>
-            <a
-              href="https://game.censtu.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-bold text-orange-800 hover:text-orange-950 inline-flex items-center gap-1 bg-white/80 hover:bg-white px-2 py-0.5 rounded-md border border-amber-300 transition-colors shadow-2xs"
-            >
-              <Gamepad2 className="w-3.5 h-3.5 text-orange-600" />
-              <span>Kho game CenStu</span>
-              <ExternalLink className="w-3 h-3 text-orange-500" />
-            </a>
-          </div>
+            <div className="text-xs">
+              © {new Date().getFullYear()} • Phát hành bởi{' '}
+              <a
+                href="https://censtu.com"
+                target="_top"
+                className="font-black text-amber-950 hover:text-amber-800 underline decoration-amber-400 hover:decoration-amber-600"
+              >
+                censtu.com
+              </a>
+            </div>
 
-          <div className="flex items-center gap-1 text-[11px] text-amber-800">
-            <span>Học toán tiểu học</span>
-            <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
+            <div className="flex items-center gap-1 text-[11px] text-amber-800">
+              <span>Học toán tiểu học</span>
+              <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
+            </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      )}
     </div>
   );
 };
 
 export default function App() {
+  // Portal tắt màn chờ khi nhận `censtu:san-sang`. Ref chặn StrictMode bắn hai lần ở bản dev.
+  const daBaoRef = useRef(false);
+  useEffect(() => {
+    if (daBaoRef.current) return;
+    daBaoRef.current = true;
+    baoSanSang();
+  }, []);
+
   return (
     <GameProvider>
       <MainContent />

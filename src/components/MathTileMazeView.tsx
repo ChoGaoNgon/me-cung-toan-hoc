@@ -317,6 +317,10 @@ export const MathTileMazeView: React.FC<MathTileMazeViewProps> = ({
   if (!maze) return null;
 
   const maxBeRongLuoi = maze.width <= 4 ? '460px' : maze.width === 5 ? '540px' : '620px';
+  // Sàn bề rộng lưới khi nhúng: mỗi ô ≥ 68px để chứa số 2–3 chữ số (text-2xl + đệm + viền). Thiếu sàn,
+  // màn thấp (vd. 1366×768 hay Windows scale 150%) làm `100dvh − 360px` còn ~150px, ô co hẹp hơn nội dung
+  // nên hàng bị kéo cao, ô mất hình vuông và chữ số lệch khỏi ô. Vượt khung thì <main> cuộn được.
+  const minBeRongLuoi = `${maze.width * 68 + (maze.width - 1) * 8 + 24 + 6}px`;
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -478,7 +482,7 @@ export const MathTileMazeView: React.FC<MathTileMazeViewProps> = ({
               gridTemplateColumns: `repeat(${maze.width}, minmax(0, 1fr))`,
               // Lưới vuông ⇒ cao ≈ rộng. Khi nhúng, trừ phần header + HUD + đệm khỏi chiều cao khung.
               maxWidth: gon
-                ? `min(${maxBeRongLuoi}, calc(100dvh - 360px))`
+                ? `clamp(${minBeRongLuoi}, calc(100dvh - 360px), ${maxBeRongLuoi})`
                 : maxBeRongLuoi
             }}
           >
@@ -564,7 +568,7 @@ export const MathTileMazeView: React.FC<MathTileMazeViewProps> = ({
                                 ? 'text-xs sm:text-sm text-slate-800'
                                 : cell.display.length > 4
                                 ? 'text-sm sm:text-lg text-slate-800'
-                                : 'text-base sm:text-2xl text-slate-900'
+                                : 'text-base sm:text-2xl text-slate-900 whitespace-nowrap'
                             }`}
                           >
                             {cell.display}
